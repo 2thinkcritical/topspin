@@ -2,6 +2,7 @@
 
 from html.parser import HTMLParser
 from pathlib import Path
+import re
 from urllib.parse import urlsplit
 import xml.etree.ElementTree as ET
 
@@ -32,7 +33,17 @@ def main():
         path = (ROOT / urlsplit(link).path).resolve()
         assert path.is_relative_to(ROOT / "charts"), f"Invalid chart path: {link}"
         assert path.is_file(), f"Missing chart: {link}"
-        assert ET.parse(path).getroot().tag == "{http://www.w3.org/2000/svg}svg", link
+        svg = ET.parse(path).getroot()
+        assert svg.tag == "{http://www.w3.org/2000/svg}svg", link
+        ns = {"svg": "http://www.w3.org/2000/svg"}
+        points = svg.findall(".//svg:circle", ns)
+        labels = svg.findall('.//svg:text[@class="tournament-label"]', ns)
+        assert len(points) == len(labels) and points, f"Missing tournament labels: {link}"
+        for point, label in zip(points, labels):
+            title = point.find("svg:title", ns)
+            match = re.match(r"Турнир (\d+):", title.text if title is not None else "")
+            assert match and label.text == match.group(1), f"Incorrect tournament label: {link}"
+            assert point.get("cx") == label.get("x"), f"Misaligned tournament label: {link}"
     print(f"Checked {len(parser.links)} unique player charts.")
 
 
