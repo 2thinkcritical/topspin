@@ -8,6 +8,8 @@ A table tennis rating table for the Topspin club in Tbilisi, Georgia. The site d
 
 - `index.html` — the rating table and its styles.
 - `charts/` — self-contained SVG charts, served alongside the page.
+- `data/ratings.json` — each player's name and rating history (`[tournament, rating]` pairs; tournament 0 is the starting rating).
+- `scripts/build_charts.py` — rebuilds every chart in `charts/` from `data/ratings.json`.
 - `scripts/check_site.py` — a dependency-free integrity check for the site.
 - `.github/workflows/check.yml` — runs the integrity check on pushes and pull requests.
 
@@ -24,6 +26,15 @@ python3 -m http.server 8000
 Open `http://localhost:8000/`. To check the links and charts, run:
 
 ```sh
+python3 scripts/check_site.py
+```
+
+## Update the charts
+
+After a tournament, append the new `[tournament, rating]` pair to each player who played in `data/ratings.json`, then run:
+
+```sh
+python3 scripts/build_charts.py
 python3 scripts/check_site.py
 ```
 
