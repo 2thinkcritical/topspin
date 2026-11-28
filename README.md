@@ -5,24 +5,30 @@ tennis club in Tbilisi, Georgia.
 
 **Live site:** https://2thinkcritical.github.io/topspin/
 
-The site is static: GitHub Pages serves `index.html` and one SVG chart per
-player. Both are generated from the tournament results in `data/` by a small
-Python package with no runtime dependencies.
+The repository holds the tournament results, the rating rules and the page
+sources. On every push to `main`, GitHub Actions tests the code, builds the
+site and publishes it to GitHub Pages. Nothing generated is committed.
 
 ## How it works
 
 ```
 data/players.csv  ─┐
-                   ├─ topspin.rating ─┬─ topspin.charts ─→ charts/<player id>.svg
-data/tournaments/ ─┘   (replays every  └─ topspin.page   ─→ standings table in index.html
-                        tournament)
+                   ├─→ topspin.rating ─┬─→ topspin.charts ─→ _site/charts/<player id>.svg
+data/tournaments/ ─┘                   └─→ topspin.page   ─→ _site/index.html
+web/  (page, styles, script, images) ──────────────────────→ _site/
 ```
 
-- **`topspin/rating.py`** holds the rating rules (see [docs/rating-rules.md](docs/rating-rules.md)).
-  It is a pure function of the data: replaying all tournaments always produces the same ratings.
-- **`topspin/data.py`** reads and validates the CSV files.
-- **`topspin/charts.py`** and **`topspin/page.py`** render the output. `index.html` is written by hand;
-  only the rows between its `standings:start` and `standings:end` markers are generated.
+| Path | Contents |
+|------|----------|
+| `data/` | Players with their starting ratings, and the matches of every tournament. |
+| `topspin/rating.py` | The rating rules ([docs/rating-rules.md](docs/rating-rules.md)). A pure function of the data. |
+| `topspin/data.py` | Reads and validates the CSV files. |
+| `topspin/charts.py`, `topspin/page.py` | Render each player's chart and the standings table. |
+| `topspin/build.py` | Puts the site together in `_site/`. |
+| `web/` | The hand-written page: `index.html` (the table goes where it says `<!-- standings -->`), `style.css`, `title-ball.js`, images. |
+| `tests/` | Rating rules, data integrity, the built site, and parity with the original implementation. |
+
+The Python package has no runtime dependencies.
 
 ## Data
 
@@ -43,29 +49,23 @@ first_id,second_id,first_name,second_name,score,first_place,second_place
 
 ## Adding a tournament
 
-1. Add new players to `data/players.csv`.
-2. Save the results as `data/tournaments/38.csv` (the next number).
-3. Rebuild and check:
+1. Add any new players to `data/players.csv`.
+2. Add the results as `data/tournaments/38.csv` (the next number).
+3. Commit and push to `main`, or upload the file through the GitHub web interface.
 
-   ```sh
-   python3 -m topspin build
-   uv run pytest
-   ```
-
-4. Commit `data/`, `charts/` and `index.html`. GitHub Pages publishes `main` automatically.
+The site updates a minute or two later. If the data is invalid, the workflow fails,
+the live site stays as it was, and the run's log says what is wrong.
 
 ## Development
 
-Requires Python 3.11+. Tests and linting use [uv](https://docs.astral.sh/uv/):
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/) for the dev tools:
 
 ```sh
-uv run pytest                          # rules, data integrity and the generated site
+uv run pytest
 uv run ruff check . && uv run ruff format --check .
-python3 -m topspin build --check       # fails if generated files are out of date
-python3 -m http.server 8000            # preview at http://localhost:8000/
+python3 -m topspin build                   # writes _site/
+python3 -m http.server -d _site 8000       # preview at http://localhost:8000/
 ```
-
-CI runs all of these on every push and pull request.
 
 `tests/data/legacy_results.json` holds the ratings produced by the league's original pandas
 implementation. The tests require the current code to reproduce them exactly, so the rules
