@@ -1,6 +1,7 @@
 """The built site: every link and asset resolves, and the charts are well-formed."""
 
 import re
+import shutil
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from itertools import pairwise
@@ -8,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from topspin.build import build
+from topspin.build import ROOT, build
 from topspin.charts import nice_ticks
 from topspin.data import load_players
 
@@ -85,6 +86,95 @@ def test_rebuilding_replaces_old_output(tmp_path: Path) -> None:
     stale.write_text("old")
     build(tmp_path)
     assert not stale.exists()
+
+
+@pytest.mark.parametrize(
+    "destination", [".", "..", "web", "web/output", "data", "topspin", "tests", ".git", ".github", "docs", ".venv"]
+)
+def test_build_rejects_source_destinations_without_deleting_files(tmp_path: Path, destination: str) -> None:
+    root = tmp_path / "source"
+    shutil.copytree(ROOT / "data", root / "data")
+    shutil.copytree(ROOT / "web", root / "web")
+    output = root / destination
+    output.mkdir(parents=True, exist_ok=True)
+    sentinel = output / "keep.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+    with pytest.raises(ValueError, match="source"):
+        build(output, root=root)
+    assert sentinel.read_text(encoding="utf-8") == "keep"
+    assert (root / "data" / "players.csv").is_file()
+
+
+def test_build_rejects_symbolic_link_destination(tmp_path: Path) -> None:
+    target = tmp_path / "existing"
+    target.mkdir()
+    sentinel = target / "keep.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+    output = tmp_path / "link"
+    output.symlink_to(target, target_is_directory=True)
+    with pytest.raises(ValueError, match="symbolic link"):
+        build(output)
+    assert output.is_symlink()
+    assert sentinel.read_text(encoding="utf-8") == "keep"
+
+
+def test_build_rejects_a_file_destination(tmp_path: Path) -> None:
+    output = tmp_path / "keep.txt"
+    output.write_text("keep", encoding="utf-8")
+    with pytest.raises(ValueError, match="directory"):
+        build(output)
+    assert output.read_text(encoding="utf-8") == "keep"
+
+
+def test_staging_failure_keeps_previous_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    output = tmp_path / "site"
+    output.mkdir()
+    previous = output / "index.html"
+    previous.write_text("previous site", encoding="utf-8")
+
+    def fail_copy(*args: object, **kwargs: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(shutil, "copytree", fail_copy)
+    with pytest.raises(OSError, match="disk full"):
+        build(output)
+    assert previous.read_text(encoding="utf-8") == "previous site"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["site"]
+
+
+@pytest.mark.parametrize("previous_site", [False, True])
+def test_install_failure_restores_previous_site(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, previous_site: bool
+) -> None:
+    output = tmp_path / "site"
+    if previous_site:
+        output.mkdir()
+        (output / "index.html").write_text("previous site", encoding="utf-8")
+    replace = Path.replace
+
+    def fail_install(path: Path, target: str | Path) -> Path:
+        if path.name == "site" and path.parent.name.startswith(".site-"):
+            raise OSError("install failed")
+        return replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", fail_install)
+    with pytest.raises(OSError, match="install failed"):
+        build(output)
+    if previous_site:
+        assert (output / "index.html").read_text(encoding="utf-8") == "previous site"
+    else:
+        assert not output.exists()
+    assert sorted(p.name for p in tmp_path.iterdir()) == (["site"] if previous_site else [])
+
+
+def test_build_rejects_source_through_a_symbolic_link_parent(tmp_path: Path) -> None:
+    root = tmp_path / "source"
+    root.mkdir()
+    alias = tmp_path / "alias"
+    alias.symlink_to(root, target_is_directory=True)
+    with pytest.raises(ValueError, match="source"):
+        build(alias / "web" / "output", root=root)
+    assert list(root.iterdir()) == []
 
 
 @pytest.mark.parametrize(("low", "high"), [(69, 134), (1078, 1098), (100, 100), (18.07, 26.51)])
