@@ -89,8 +89,9 @@ Use `uv run python -m topspin build --out PATH` to choose a different output fol
 The build rejects source directories, their ancestors, and symbolic-link destinations.
 It prepares the complete site before replacing previous output; a failed preparation
 or installation preserves the previous site. An existing valid output folder is replaced
-in full, so keep unrelated files elsewhere. Concurrent builds to the same folder are
-not supported.
+in full, so keep unrelated files elsewhere. If restoring previous output also fails,
+the error reports the retained backup's path for manual recovery. Concurrent builds
+to the same folder are not supported.
 
 ## License
 
