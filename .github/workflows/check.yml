@@ -1,4 +1,4 @@
-name: Check static site
+name: Check
 on:
   push:
   pull_request:
@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: python scripts/check_site.py
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --python 3.12 ruff check .
+      - run: uv run --python 3.12 ruff format --check .
+      - run: uv run --python 3.12 pytest
+      - run: uv run --python 3.12 python -m topspin build --check
