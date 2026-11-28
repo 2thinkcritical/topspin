@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     output = args.out.resolve()
     try:
         charts = build(output)
-    except ValueError as error:  # invalid league data: report it without a traceback
+    except (ValueError, OSError) as error:  # report invalid data/paths and failed writes without a traceback
         print(f"error: {error}", file=sys.stderr)
         return 1
     shown = output.relative_to(ROOT) if output.is_relative_to(ROOT) else output

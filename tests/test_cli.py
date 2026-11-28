@@ -17,12 +17,13 @@ def test_a_command_is_required() -> None:
         main([])
 
 
-def test_invalid_data_is_reported_without_a_traceback(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+@pytest.mark.parametrize("error", [ValueError("invalid league data"), OSError("disk full")])
+def test_build_errors_are_reported_without_a_traceback(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], error: Exception
 ) -> None:
     def broken_data(output: Path) -> int:
-        raise ValueError("data/tournaments/38.csv: no matches")
+        raise error
 
     monkeypatch.setattr(cli, "build", broken_data)
     assert main(["build"]) == 1
-    assert capsys.readouterr().err == "error: data/tournaments/38.csv: no matches\n"
+    assert capsys.readouterr().err == f"error: {error}\n"

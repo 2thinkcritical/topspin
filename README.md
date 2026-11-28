@@ -58,6 +58,11 @@ first_id,second_id,first_name,second_name,score,first_place,second_place
 The site updates a minute or two later. If the data is invalid, the workflow fails,
 the live site stays as it was, and the run's log says what is wrong.
 
+Every player's final place must be positive and consistent throughout a tournament.
+Podium places 1–3 cannot be shared; tournaments with at least 16 participants must
+include all three podium places because they determine rating bonuses. Ties below
+the podium are allowed.
+
 ## Development
 
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
@@ -76,8 +81,16 @@ for every push and pull request, then builds the site and deploys it from `main`
 keeps the actions and dev tools up to date.
 
 `tests/data/legacy_results.json` holds the ratings produced by the league's original pandas
-implementation. The tests require the current code to reproduce them exactly, so the rules
-cannot change by accident.
+implementation for the original players through tournament 37. The parity tests replay
+only that historical slice, so adding players or later tournaments does not require
+rewriting the baseline. Separate integrity checks and site tests cover all current data.
+
+Use `uv run python -m topspin build --out PATH` to choose a different output folder.
+The build rejects source directories, their ancestors, and symbolic-link destinations.
+It prepares the complete site before replacing previous output; a failed preparation
+or installation preserves the previous site. An existing valid output folder is replaced
+in full, so keep unrelated files elsewhere. Concurrent builds to the same folder are
+not supported.
 
 ## License
 
