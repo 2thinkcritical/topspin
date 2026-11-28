@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" role="img" aria-label="Рейтинг: Толматов Артем"><style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" style="background:#1f5a3e" role="img" aria-label="Рейтинг: Толматов Артем"><style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&amp;family=Inter:wght@400;500;600&amp;display=swap');
 .name{font:700 40px 'Oswald','Arial Narrow',sans-serif;fill:#ffffff;text-transform:uppercase;letter-spacing:2px}
 .sub{font:500 14px 'Inter',Arial,sans-serif;fill:#9aa3b2;letter-spacing:3px}

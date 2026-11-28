@@ -170,6 +170,8 @@ def render_chart(name: str, history: Sequence[HistoryPoint], last_tournament: in
             "Ещё не играл в турнирах лиги</text>"
         )
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {HEIGHT}" role="img" '
+        # The background fills the whole browser window when a chart is opened directly.
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {HEIGHT}" '
+        f'style="background:{BACKGROUND}" role="img" '
         f'aria-label="Рейтинг: {escape(name)}">{STYLE}{"".join(out)}</svg>\n'
     )
