@@ -10,8 +10,9 @@ from pathlib import Path
 import pytest
 
 from topspin.build import ROOT, build
-from topspin.charts import nice_ticks
+from topspin.charts import nice_ticks, render_chart
 from topspin.data import load_players
+from topspin.models import HistoryPoint
 
 SVG = {"svg": "http://www.w3.org/2000/svg"}
 
@@ -78,6 +79,15 @@ def test_charts_are_well_formed(site: Path) -> None:
             gaps = [b - a for a, b in pairwise(float(t.get("x", "nan")) for t in ticks)]
             assert len(ticks) >= 2, chart.name
             assert max(gaps) - min(gaps) < 0.5, f"{chart.name}: tournament labels must be evenly spaced"
+
+
+def test_registered_player_without_matches_has_an_explanatory_chart() -> None:
+    chart = ET.fromstring(render_chart("New Player", [HistoryPoint(0, 100)], last_tournament=38))
+    text = list(chart.itertext())
+    assert "New Player" in text
+    assert "Ещё не играл в турнирах лиги" in text
+    assert "100" in text
+    assert not chart.findall(".//svg:circle", SVG)
 
 
 def test_rebuilding_replaces_old_output(tmp_path: Path) -> None:
@@ -175,6 +185,44 @@ def test_build_rejects_source_through_a_symbolic_link_parent(tmp_path: Path) -> 
     with pytest.raises(ValueError, match="source"):
         build(alias / "web" / "output", root=root)
     assert list(root.iterdir()) == []
+
+
+@pytest.mark.parametrize("source_name", ["data", "web"])
+@pytest.mark.parametrize("ancestor", [False, True])
+def test_build_protects_external_symlinked_sources_and_their_ancestors(
+    tmp_path: Path, source_name: str, ancestor: bool
+) -> None:
+    root, external = tmp_path / "source", tmp_path / "external"
+    shutil.copytree(ROOT / "data", root / "data")
+    shutil.copytree(ROOT / "web", root / "web")
+    external.mkdir()
+    target = external / source_name
+    shutil.move(root / source_name, target)
+    (root / source_name).symlink_to(target, target_is_directory=True)
+    sentinel = target / "keep.txt"
+    sentinel.write_text("keep", encoding="utf-8")
+    with pytest.raises(ValueError, match="source"):
+        build(external if ancestor else target, root=root)
+    assert sentinel.read_text(encoding="utf-8") == "keep"
+
+
+def test_failed_rollback_retains_recoverable_previous_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    output = tmp_path / "site"
+    output.mkdir()
+    (output / "index.html").write_text("previous site", encoding="utf-8")
+    replace = Path.replace
+
+    def fail_install_and_restore(path: Path, target: str | Path) -> Path:
+        if path.parent.name.startswith(".site-"):
+            raise OSError("rename unavailable")
+        return replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", fail_install_and_restore)
+    with pytest.raises(OSError, match="backup kept at"):
+        build(output)
+    retained = list(tmp_path.glob(".site-*/previous/index.html"))
+    assert len(retained) == 1
+    assert retained[0].read_text(encoding="utf-8") == "previous site"
 
 
 @pytest.mark.parametrize(("low", "high"), [(69, 134), (1078, 1098), (100, 100), (18.07, 26.51)])
