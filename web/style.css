@@ -1,0 +1,146 @@
+:root {
+  --page: #1f5a3e;        /* table-tennis green */
+  --card: #1b1e24;
+  --row: #22262e;
+  --line: #2f343d;
+  --accent: #ff7a1a;
+  --row-hover: #2e7d57;
+  --text: #ffffff;
+  --text-soft: #d9dee6;
+  --text-muted: #c2c8d3;
+  --telegram: #229ed9;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .25);
+  --content-width: 600px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 1rem;
+  background: var(--page);
+  color: var(--text-soft);
+  font: 400 16px/1.5 "Roboto", Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+main { max-width: var(--content-width); margin: 0 auto; }
+
+a { color: var(--text); }
+a:focus-visible { outline: 3px solid var(--telegram); outline-offset: 3px; }
+
+/* Header ------------------------------------------------------------------ */
+
+.page-header {
+  position: relative;
+  overflow: hidden;
+  margin: .5rem 0 2rem;
+  padding: 36px 20px 30px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-align: center;
+}
+
+.club-logo { display: block; width: 104px; height: 104px; margin: 0 auto 16px; border-radius: 50%; }
+.club-logo img {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 4px;
+  border: 3px solid var(--card);
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 8px 24px rgba(0, 0, 0, .45);
+}
+
+.page-header h1 {
+  position: relative;   /* positions the bouncing ball */
+  margin: 0;
+  font: 700 clamp(30px, 7vw, 46px)/1.1 "Oswald", "Arial Narrow", sans-serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.page-header h1 em { font-style: normal; color: var(--accent); }
+
+.page-header p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font: 500 14px "Inter", sans-serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.telegram {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 10px 20px;
+  border: 1.5px solid rgba(255, 255, 255, .45);
+  border-radius: 999px;
+  font: 600 15px "Inter", sans-serif;
+  text-decoration: none;
+  transition: background .2s, border-color .2s;
+}
+.telegram:hover { background: var(--telegram); border-color: var(--telegram); }
+.telegram svg { width: 18px; height: 18px; }
+
+/* Bouncing ball over the title (title-ball.js) */
+.title-baseline { display: inline-block; width: 0; height: 0; }
+.hop-ball { --d: 14px; position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0; }
+.hop-ball i {
+  display: block;
+  width: var(--d);
+  height: var(--d);
+  margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #e6e6e3 60%, #b3b3ae);
+  box-shadow: 0 0 10px rgba(255, 255, 255, .35);
+}
+
+/* Standings ----------------------------------------------------------------- */
+
+.standings {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.standings th,
+.standings td {
+  border-right: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+.standings th:last-child,
+.standings td:last-child { border-right: none; }
+
+.standings th {
+  padding: 16px;
+  border-bottom: 4px solid var(--accent);
+  color: #d5dde5;
+  font-size: 23px;
+  font-weight: 100;
+}
+
+.standings tbody tr { border-top: 1px solid var(--line); }
+.standings tbody tr:first-child { border-top: none; }
+
+.standings td {
+  padding: 8px;
+  background: var(--row);
+  font-size: 18px;
+  font-weight: 300;
+}
+.standings tbody tr:nth-child(odd) td { background: var(--card); }
+.standings tbody tr:hover td { background: var(--row-hover); color: var(--text); }
+
+.standings td a { font-weight: 500; text-decoration: none; }
+
+@media (max-width: 480px) {
+  .standings th { padding: 10px 6px; font-size: 16px; }
+  .standings td { padding: 8px 6px; font-size: 15px; }
+}
