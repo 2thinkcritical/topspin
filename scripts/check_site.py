@@ -37,13 +37,19 @@ def main():
         assert svg.tag == "{http://www.w3.org/2000/svg}svg", link
         ns = {"svg": "http://www.w3.org/2000/svg"}
         points = svg.findall(".//svg:circle", ns)
-        labels = svg.findall('.//svg:text[@class="tournament-label"]', ns)
-        assert len(points) == len(labels) and points, f"Missing tournament labels: {link}"
-        for point, label in zip(points, labels):
+        assert points, f"No rating points: {link}"
+        numbers = []
+        for point in points:
             title = point.find("svg:title", ns)
-            match = re.match(r"Турнир (\d+):", title.text if title is not None else "")
-            assert match and label.text == match.group(1), f"Incorrect tournament label: {link}"
-            assert point.get("cx") == label.get("x"), f"Misaligned tournament label: {link}"
+            match = re.match(r"Турнир (\d+): -?\d", title.text if title is not None else "")
+            assert match, f"Point without a tournament title: {link}"
+            numbers.append(int(match.group(1)))
+        assert numbers == sorted(set(numbers)), f"Tournaments out of order: {link}"
+        ticks = [t for t in svg.findall(".//svg:text", ns) if "tick-x" in (t.get("class") or "").split()]
+        assert len(ticks) >= 2 and all(t.text.isdigit() for t in ticks), f"Missing axis labels: {link}"
+        xs = [float(t.get("x")) for t in ticks]
+        gaps = [b - a for a, b in zip(xs, xs[1:])]
+        assert max(gaps) - min(gaps) < 0.5, f"Uneven axis labels: {link}"
     print(f"Checked {len(parser.links)} unique player charts.")
 
 
