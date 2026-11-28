@@ -78,3 +78,7 @@ keeps the actions and dev tools up to date.
 `tests/data/legacy_results.json` holds the ratings produced by the league's original pandas
 implementation. The tests require the current code to reproduce them exactly, so the rules
 cannot change by accident.
+
+## License
+
+Released into the public domain under [the Unlicense](LICENSE).
