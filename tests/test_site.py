@@ -18,50 +18,50 @@ SVG = {"svg": "http://www.w3.org/2000/svg"}
 class _References(HTMLParser):
     """Local files a page refers to through href and src attributes."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.local: list[str] = []
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         for name, value in attrs:
             if name in {"href", "src"} and value and not re.match(r"[a-z]+:|#", value):
                 self.local.append(value)
 
 
 @pytest.fixture(scope="module")
-def site(tmp_path_factory) -> Path:
-    output = tmp_path_factory.mktemp("site")
+def site(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    output: Path = tmp_path_factory.mktemp("site")
     build(output)
     return output
 
 
 @pytest.fixture(scope="module")
-def references(site) -> list[str]:
+def references(site: Path) -> list[str]:
     parser = _References()
     parser.feed((site / "index.html").read_text(encoding="utf-8"))
     return parser.local
 
 
-def test_every_local_reference_resolves(site, references):
+def test_every_local_reference_resolves(site: Path, references: list[str]) -> None:
     missing = [ref for ref in references if not (site / ref).is_file()]
     assert not missing
 
 
-def test_every_player_has_one_row_and_one_chart(site, references):
+def test_every_player_has_one_row_and_one_chart(site: Path, references: list[str]) -> None:
     chart_links = [ref for ref in references if ref.startswith("charts/")]
     player_ids = {p.id for p in load_players(Path(__file__).parent.parent / "data" / "players.csv")}
     assert sorted(chart_links) == sorted(f"charts/{pid}.svg" for pid in player_ids)
     assert {p.name for p in (site / "charts").iterdir()} == {f"{pid}.svg" for pid in player_ids}
 
 
-def test_rows_replace_the_placeholder(site):
+def test_rows_replace_the_placeholder(site: Path) -> None:
     page = (site / "index.html").read_text(encoding="utf-8")
     assert "<!-- standings -->" not in page
     places = [int(p) for p in re.findall(r"<tr><td>(\d+)</td>", page)]
     assert places == list(range(1, len(places) + 1))
 
 
-def test_charts_are_well_formed(site):
+def test_charts_are_well_formed(site: Path) -> None:
     for chart in sorted((site / "charts").glob("*.svg")):
         svg = ET.parse(chart).getroot()
         assert svg.tag == "{http://www.w3.org/2000/svg}svg", chart.name
@@ -74,12 +74,12 @@ def test_charts_are_well_formed(site):
 
         if tournaments:
             ticks = [t for t in svg.findall(".//svg:text", SVG) if "tick-x" in t.get("class", "").split()]
-            gaps = [b - a for a, b in pairwise(float(t.get("x")) for t in ticks)]
+            gaps = [b - a for a, b in pairwise(float(t.get("x", "nan")) for t in ticks)]
             assert len(ticks) >= 2, chart.name
             assert max(gaps) - min(gaps) < 0.5, f"{chart.name}: tournament labels must be evenly spaced"
 
 
-def test_rebuilding_replaces_old_output(tmp_path):
+def test_rebuilding_replaces_old_output(tmp_path: Path) -> None:
     stale = tmp_path / "charts" / "999.svg"
     stale.parent.mkdir()
     stale.write_text("old")
@@ -88,7 +88,7 @@ def test_rebuilding_replaces_old_output(tmp_path):
 
 
 @pytest.mark.parametrize(("low", "high"), [(69, 134), (1078, 1098), (100, 100), (18.07, 26.51)])
-def test_axis_ticks_are_round_and_cover_the_data(low, high):
+def test_axis_ticks_are_round_and_cover_the_data(low: float, high: float) -> None:
     ticks = nice_ticks(low, high)
     assert ticks[0] <= low
     assert ticks[-1] >= high

@@ -7,18 +7,36 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = [
+    "mypy>=1.13",
+    "pytest>=8",
+    "pytest-cov>=6",
+    "ruff>=0.8",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q"
+addopts = ["-q", "--strict-markers", "--cov", "--cov-report=term-missing:skip-covered"]
+
+[tool.coverage.run]
+source = ["topspin"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+exclude_also = ['if __name__ == "__main__":']
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["topspin", "tests"]
 
 [tool.ruff]
 line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "PT", "RUF"]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "PT", "RUF", "PTH", "PIE", "RET", "TID"]
 # Russian text in strings and comments is intentional.
 ignore = ["RUF001", "RUF002", "RUF003"]

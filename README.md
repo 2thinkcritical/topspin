@@ -1,5 +1,7 @@
 # Topspin — League of Roses
 
+[![Site](https://github.com/2thinkcritical/topspin/actions/workflows/site.yml/badge.svg)](https://github.com/2thinkcritical/topspin/actions/workflows/site.yml)
+
 Ratings for the League of Roses, the tournament series of the Topspin table
 tennis club in Tbilisi, Georgia.
 
@@ -58,14 +60,20 @@ the live site stays as it was, and the run's log says what is wrong.
 
 ## Development
 
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/) for the dev tools:
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
-uv run pytest
+uv sync                                    # install the dev tools from uv.lock
+uv run pytest                              # tests, with 100 % line and branch coverage required
+uv run mypy                                # strict type checking of the package and the tests
 uv run ruff check . && uv run ruff format --check .
-python3 -m topspin build                   # writes _site/
+uv run python -m topspin build             # writes _site/
 python3 -m http.server -d _site 8000       # preview at http://localhost:8000/
 ```
+
+The [Site workflow](.github/workflows/site.yml) runs the same checks on Python 3.11 and 3.13
+for every push and pull request, then builds the site and deploys it from `main`. Dependabot
+keeps the actions and dev tools up to date.
 
 `tests/data/legacy_results.json` holds the ratings produced by the league's original pandas
 implementation. The tests require the current code to reproduce them exactly, so the rules

@@ -45,8 +45,6 @@ def nice_ticks(low: float, high: float, count: int = 5) -> list[float]:
     magnitude = 10 ** math.floor(math.log10(raw))
     step = next(m * magnitude for m in (1, 2, 2.5, 5, 10) if m * magnitude >= raw)
     first, last = math.floor(low / step) * step, math.ceil(high / step) * step
-    if first == last:
-        last += step
     return [first + i * step for i in range(round((last - first) / step) + 1)]
 
 
