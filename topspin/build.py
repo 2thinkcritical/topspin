@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import shutil
+from contextlib import ExitStack
 from pathlib import Path
+from tempfile import mkdtemp
 
 from .charts import render_chart
 from .data import load_players, load_tournaments
@@ -34,12 +36,40 @@ def render_pages(root: Path = ROOT) -> dict[str, str]:
 
 def build(output: Path = OUTPUT, root: Path = ROOT) -> int:
     """Write the complete site to ``output``, replacing what was there. Returns the number of charts."""
+    if output.is_symlink():
+        raise ValueError(f"{output}: output must not be a symbolic link")
+    output, root = output.resolve(), root.resolve()
+    protected = [
+        (root / name).resolve() for name in (SOURCE, "data", "topspin", "tests", "docs", ".git", ".github", ".venv")
+    ]
+    if root.is_relative_to(output) or any(
+        output.is_relative_to(source) or source.is_relative_to(output) for source in protected
+    ):
+        raise ValueError(f"{output}: output must not replace or overlap source directories")
+    if output.exists() and not output.is_dir():
+        raise ValueError(f"{output}: output must be a directory")
     pages = render_pages(root)
-    if output.exists():
-        shutil.rmtree(output)
-    shutil.copytree(root / SOURCE, output)
-    for relative, text in pages.items():
-        path = output / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # Stage on the same filesystem; a failed copy/write leaves the last site untouched.
+    temporary = Path(mkdtemp(prefix=f".{output.name}-", dir=output.parent))
+    staging, backup = temporary / "site", temporary / "previous"
+    with ExitStack() as cleanup:
+        cleanup.callback(shutil.rmtree, temporary)
+        shutil.copytree(root / SOURCE, staging)
+        for relative, text in pages.items():
+            path = staging / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        if output.exists():
+            output.replace(backup)
+        try:
+            staging.replace(output)
+        except OSError:
+            if backup.exists():
+                try:
+                    backup.replace(output)
+                except OSError as error:
+                    cleanup.pop_all()  # Keep the staged files and previous site for manual recovery.
+                    raise OSError(f"Could not restore previous site; backup kept at {backup}") from error
+            raise
     return len(pages) - 1

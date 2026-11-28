@@ -26,7 +26,13 @@ def tournaments() -> list[Tournament]:
 
 @pytest.fixture(scope="module")
 def result(players: list[Player], tournaments: list[Tournament]) -> RatingResult:
-    return calculate(players, tournaments)
+    # The baseline describes a historical dataset, not future league updates.
+    legacy_ids = {int(player_id) for player_id in LEGACY["ratings"]}
+    last_tournament = max(point[0] for points in LEGACY["history"].values() for point in points)
+    return calculate(
+        [player for player in players if player.id in legacy_ids],
+        [tournament for tournament in tournaments if tournament.number <= last_tournament],
+    )
 
 
 def test_tournament_files_use_canonical_player_names(players: list[Player]) -> None:

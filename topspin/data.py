@@ -13,6 +13,7 @@ import csv
 from pathlib import Path
 
 from .models import Match, Player, Tournament
+from .rating import BONUS_MIN_PARTICIPANTS, PODIUM_BONUSES
 
 PLAYER_FIELDS = ("id", "name", "initial_rating")
 MATCH_FIELDS = ("first_id", "second_id", "first_name", "second_name", "score", "first_place", "second_place")
@@ -52,6 +53,23 @@ def load_tournament(path: Path) -> Tournament:
         raise ValueError(f"{path}: no matches")
     if any(m.first == m.second for m in matches):
         raise ValueError(f"{path}: a player is paired with themselves")
+    places: dict[int, int] = {}
+    podium: dict[int, int] = {}
+    for match in matches:
+        for player, place in ((match.first, match.first_place), (match.second, match.second_place)):
+            if place <= 0:
+                raise ValueError(f"{path}: player {player} place must be positive, got {place}")
+            previous = places.setdefault(player, place)
+            if previous != place:
+                raise ValueError(f"{path}: player {player} has conflicting places {previous} and {place}")
+            if place in PODIUM_BONUSES:
+                occupant = podium.setdefault(place, player)
+                if occupant != player:
+                    raise ValueError(f"{path}: podium place {place} has multiple players: {occupant} and {player}")
+    if len(places) >= BONUS_MIN_PARTICIPANTS:
+        missing = PODIUM_BONUSES.keys() - podium.keys()
+        if missing:
+            raise ValueError(f"{path}: missing podium places {sorted(missing)}")
     return Tournament(number=int(path.stem), matches=matches)
 
 
