@@ -9,20 +9,40 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  check:
+    name: Check (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - name: Lint
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy
+      - name: Test
+        run: uv run pytest
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Lint
-        run: |
-          uv run --python 3.12 ruff check .
-          uv run --python 3.12 ruff format --check .
-      - name: Test
-        run: uv run --python 3.12 pytest
-      - name: Build
-        run: uv run --python 3.12 python -m topspin build
+      - run: uv run --locked python -m topspin build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

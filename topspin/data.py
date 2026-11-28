@@ -50,6 +50,8 @@ def load_tournament(path: Path) -> Tournament:
     )
     if not matches:
         raise ValueError(f"{path}: no matches")
+    if any(m.first == m.second for m in matches):
+        raise ValueError(f"{path}: a player is paired with themselves")
     return Tournament(number=int(path.stem), matches=matches)
 
 

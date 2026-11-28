@@ -17,7 +17,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     output = args.out.resolve()
-    charts = build(output)
+    try:
+        charts = build(output)
+    except ValueError as error:  # invalid league data: report it without a traceback
+        print(f"error: {error}", file=sys.stderr)
+        return 1
     shown = output.relative_to(ROOT) if output.is_relative_to(ROOT) else output
     print(f"Built the standings and {charts} player charts in {shown}/")
     return 0
